@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const logger = require ('./logger');
-const { clioRequestWithBackoff } = require('./clio');
+const { clioRequestWithBackoff } = require('./requestHandlers');
+
 
 const TOKEN_PATH = path.join(__dirname, '../tokens/.clio_tokens.json');
 

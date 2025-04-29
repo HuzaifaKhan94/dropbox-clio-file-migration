@@ -1,39 +1,7 @@
 const axios = require('axios');
 const { getDbxClient } = require('./dropboxAuth');
 const logger = require ('./logger');
-
-const sleep = ms => {
-    return new Promise(resolve => setTimeout(resolve, ms));
-};
-
-const dropboxRequestWithBackoff = async (fn, args=[], {
-    maxRetries = 5,
-    baseDelay = 1000
-} = {}) => {
-    let attempt = 0;
-
-    while (true) {
-        try {
-            return await fn(...args);
-        } catch (err) {
-            const status = err?.status || err?.response?.status || 0;
-
-            // Attempt retry on rate limit
-            if ((status === 429 || status === 503) && attempt < maxRetries) {
-                // Parse Retry-After if present
-                const retryAfterSec = parseInt(err?.response?.headers?.['retry-after'], 10);
-
-                const retryAfterMs = Number.isFinite(retryAfterSec) ? retryAfterSec * 1000 : baseDelay * (2 ** attempt);
-
-                logger.warn(`Dropbox | Rate Limited (HTTP ${status}). Retrying in ${retryAfterMs}ms...`);
-                await sleep(retryAfterMs);
-                attempt++;
-                continue;
-            }
-            throw err;
-        }
-    }
-};
+const { dropboxRequestWithBackoff } = require('./requestHandlers');
 
 // Recursively build tree of folders/files within 'rootPath'
 const getDropboxFolderTree = async (rootPath) => {

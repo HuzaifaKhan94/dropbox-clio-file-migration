@@ -7,10 +7,7 @@ import { MappingList } from './MappingList';
 export const Mapping = () => {
     const [folders, setFolders] = useState([]);
     const [matters, setMatters] = useState([]);
-    const [mapping, setMapping] = useState({});
-
-    const [selectedFolder, setSelectedFolder] = useState(null);
-    const [selectedMatter, setSelectedMatter] = useState(null);
+    const [mappings, setMappings] = useState({});
 
     useEffect(() => {
         async function load() {
@@ -22,58 +19,50 @@ export const Mapping = () => {
           const folders = fRes.data.folders || [];
           const rawMatters = mRes.data.matters || [];
       
-          const { newMapping, annotatedMatters } = autoMatchFoldersToMatters(rawMatters, folders);
+          const annotatedMappings = autoMatchFoldersToMatters(rawMatters, folders);
       
           setFolders(folders);
-          setMatters(annotatedMatters);
-          setMapping(newMapping);
+          setMatters(rawMatters);
+          setMappings(annotatedMappings);
         }
       
         load();
     }, []);
 
-    useEffect(() => {
-        if (selectedFolder && selectedMatter) {
-            setMapping(prev => ({
-                ...prev,
-                [selectedFolder.path]: selectedMatter
-            }));
-            setSelectedFolder(null);
-            setSelectedMatter(null);
-        }
-    },[selectedFolder, selectedMatter]);
-
     const autoMatchFoldersToMatters = (matters, folders) => {
-        const newMapping = {};
-        const annotatedMatters  = [];
-
+        const annotatedMappings = [];
+      
         for (const matter of matters) {
-            const matches = folders.filter(folder => folder.name.toLowerCase().includes(matter.number));
-
-            let matchType = 'red';
-            let selectedFolder = null;
-
-            if (matches.length > 0) {
-                selectedFolder = matches[0];
-                newMapping[matter.id] = selectedFolder.path;
-
-                if (matches.length === 1) matchType = 'green';
-                if (matches.length > 1) matchType = 'amber';
+          const matches = folders.filter(folder =>
+            folder.name.toLowerCase().includes(matter.number)
+          );
+      
+          let matchStatus = 'red';
+          let selectedFolder = null;
+      
+          if (matches.length > 0) {
+            selectedFolder = matches[0];
+            if (matches.length === 1) {
+              matchStatus = 'green';
+            } else {
+              matchStatus = 'amber';
             }
-
-            annotatedMatters.push({
-                ...matter,
-                folderMatches: matches,
-                matchType,
-                selectedFolder
-            });
+          }
+      
+          annotatedMappings.push({
+            matterId: matter.id,
+            display_number: matter.display_number,
+            folderPath: selectedFolder?.path || null,
+            matchStatus,
+          });
         }
-
-        return { newMapping, annotatedMatters };
+      
+        return annotatedMappings;
     };
+      
 
     const saveMapping = async () => {
-        await axios.post('/api/mapping', { mapping });
+        await axios.post('/api/mapping', { mapping: mappings });
         alert('Mapping saved!');
     };
 
@@ -83,19 +72,20 @@ export const Mapping = () => {
             <div style="padding:1rem;">
                 <button onClick={saveMapping}>Save Mapping</button>
             </div>
+
             <div className='flex gap-8'>
-                <MattersList
+                {/* <MattersList
                     matters={matters}
                     selectedMatter={selectedMatter}
-                    setSelectedMatter={setSelectedMatter}
+                    setSelectedMatter={handleMatterSelect}
                 />
                 <FolderList
                     folders={folders}
                     selectedFolder={selectedFolder}
                     setSelectedFolder={setSelectedFolder}
-                />
+                /> */}
                 <MappingList
-                    mapping={mapping}
+                    mappings={mappings}
                     folders={folders}
                     matters={matters}
                 />

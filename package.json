@@ -8,7 +8,8 @@
     "serve:api": "node server.js",
     "serve:ui": "npm --prefix mapping-ui run dev",
     "build:ui": "npm --prefix mapping-ui run build",
-    "dev": "concurrently -k \"npm:serve:api\" \"npm:serve:ui\""
+    "dev": "concurrently -k \"npm:serve:api\" \"npm:serve:ui\"",
+    "migration": "node src/migration/startMigration.js"
   },
   "keywords": [],
   "author": "",

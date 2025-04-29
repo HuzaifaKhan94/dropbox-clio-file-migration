@@ -1,63 +1,17 @@
-const axios = require('axios');
 const needle = require('needle');
 const logger = require ('./logger');
 const { getAccessToken } = require('./clioAuth');
+const { clioRequestWithBackoff } = require('./requestHandlers');
 
 const ONE_HUNDRED_MB = 100 * 1024 * 1024;
 const CHUNK_SIZE = 30 * 1024 * 1024;
-
-const sleep = ms => {
-    return new Promise(resolve => setTimeout(resolve, ms));
-};
-
-const clioRequestWithBackoff = async (axiosConfig, {
-    maxRetries = 5,
-    baseDelay = 1000
-} = {}) => {
-    let attempt = 0;
-
-    while (true) {
-        try {
-            const response = await axios(axiosConfig);
-            return response;
-        } catch (err) {
-            const status = err.response?.status;
-
-            if (status === 429 && attempt < maxRetries) {
-                const headers = err.response.headers;
-
-                let waitMs = 0;
-                if (headers['retry-after']) {
-                    waitMs = parseFloat(headers['retry-after']) * 1000;
-                    logger.warn(`Clio | 429: retry-after=${headers['retry-after']}s`);
-                } else if (headers['x-ratelimit-reset']) {
-                    const resetTs = parseInt(headers['x-ratelimit-reset'], 10) * 1000;
-                    waitMs = resetTs - Date.now();
-                    logger.warn(`Clio | 429: rate-limit-reset at ${new Date(resetTs).toISOString()}`);
-                } else {
-                    waitMs = baseDelay * (2 ** attempt);
-                    logger.warn(`Clio | 429: no headers, backoff ${waitMs}ms`);
-                }
-
-                waitMs = Math.max(waitMs, 0);
-
-                logger.info(`Clio | → Waiting ${waitMs}ms before retrying Clio request…`);
-                await sleep(waitMs);
-                attempt++;
-                continue;
-            }
-
-            throw err;
-        }
-    }
-};
 
 const fetchAllMatters = async () => {
     const ACCESS_TOKEN = await getAccessToken();
     const baseUrl = 'https://eu.app.clio.com/api/v4/matters.json';
 
     const params = new URLSearchParams({
-        fields: 'id,number,display_number,description',
+        fields: 'id,number,display_number,description,client{first_name,last_name,name,primary_email_address}',
         order: 'id(asc)'
     });
 
